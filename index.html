@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edital Verticalizado Inteligente</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Plataforma inteligente offline-first para organização de editais, revisões espaçadas e preparação ativa para concursos públicos com IA.">
+  <meta name="theme-color" content="#4f46e5">
+  
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="apple-touch-icon" href="assets/logo.svg">
+  
+  <!-- CSS Styles -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- CDNs preloaded for Offline Caching -->
+  <!-- PDF.js Client-Side Extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- App Wrapper -->
+  <div class="app-container">
+    
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+      <div class="brand" style="margin-bottom: 0;">
+        <img src="assets/logo.svg" alt="Logo">
+        <div class="brand-text">Edital <span>Inteligente</span></div>
+      </div>
+      <button class="menu-toggle" id="menu-toggle" aria-label="Abrir Menu">
+        <i data-lucide="menu"></i>
+      </button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <img src="assets/logo.svg" alt="Logo">
+        <div class="brand-text">Edital<br><span>Inteligente</span></div>
+      </div>
+      
+      <nav style="flex-grow: 1;">
+        <ul class="nav-menu">
+          <li class="nav-item active" data-view="dashboard">
+            <a href="#dashboard">
+              <i data-lucide="layout-dashboard" class="nav-icon"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item" data-view="editais">
+            <a href="#editais">
+              <i data-lucide="book-open" class="nav-icon"></i>
+              <span>Meus Editais</span>
+            </a>
+          </li>
+          <li class="nav-item" data-view="revisoes">
+            <a href="#revisoes">
+              <i data-lucide="calendar" class="nav-icon"></i>
+              <span>Revisões de Hoje</span>
+            </a>
+          </li>
+          <li class="nav-item" data-view="estudo-ativo">
+            <a href="#estudo-ativo">
+              <i data-lucide="brain-circuit" class="nav-icon"></i>
+              <span>Estudo Ativo</span>
+            </a>
+          </li>
+          <li class="nav-item" data-view="configuracoes">
+            <a href="#configuracoes">
+              <i data-lucide="settings" class="nav-icon"></i>
+              <span>Configurações</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Sync Status & User Profile -->
+      <div class="user-profile">
+        <div id="sync-indicator" style="font-size: 0.75rem; display: flex; align-items: center; gap: 6px; color: var(--text-muted); padding: 4px 8px; border-radius: 4px;">
+          <i data-lucide="cloud-off" style="width: 14px; height: 14px;"></i>
+          <span id="sync-text">Modo Local / Desconectado</span>
+        </div>
+        
+        <div class="user-info" id="user-info-section" style="display: none;">
+          <img src="" id="user-avatar" class="avatar" alt="Avatar">
+          <div style="display: flex; flex-direction: column; overflow: hidden;">
+            <span id="user-name" class="username">Nome do Usuário</span>
+            <span id="user-email" class="user-email">email@provedor.com</span>
+          </div>
+        </div>
+        
+        <button id="btn-login" class="btn-auth">
+          <i data-lucide="log-in" style="width: 16px; height: 16px;"></i>
+          <span>Sincronizar com Google</span>
+        </button>
+        <button id="btn-logout" class="btn-auth" style="display: none;">
+          <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+          <span>Desconectar Conta</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="main-content" id="main-content">
+      
+      <!-- ==========================================
+           VIEW: DASHBOARD
+           ========================================== -->
+      <section id="view-dashboard" class="app-view">
+        <div class="page-header">
+          <h1 class="page-title" id="dashboard-welcome">Bom dia, Concurseiro!</h1>
+          <p class="page-subtitle">Aqui está o seu planejamento adaptativo para hoje.</p>
+        </div>
+        
+        <!-- O Que Estudar Hoje (IA Adaptive Plan) -->
+        <div class="card day-focus-card">
+          <div class="day-focus-header">
+            <h2 class="day-focus-title">💡 Sugestão de Estudo para Hoje</h2>
+            <div class="day-focus-meta">
+              <span id="dash-time-goal"><i data-lucide="clock" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i>Meta: 4h líquidas</span>
+            </div>
+          </div>
+          <div class="focus-list" id="dashboard-focus-list">
+            <!-- Dynamically populated -->
+            <div class="loader-container"><div class="spinner"></div></div>
+          </div>
+        </div>
+        
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <!-- Preparação para Aprovação Index -->
+          <div class="card metric-card preparation-card">
+            <span class="metric-label">Preparação para Aprovação</span>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <div class="metric-value" id="metric-prep-index">0%</div>
+              <span class="metric-footer info" id="metric-prep-trend">Sua meta é chegar a 85%+</span>
+            </div>
+            <div class="prep-progress-bar">
+              <div class="prep-progress-fill" id="prep-progress-fill" style="width: 0%;"></div>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Índice ponderado baseado em edital estudado, revisões em dia e taxa de acertos.</span>
+          </div>
+
+          <!-- Exam Countdown -->
+          <div class="card metric-card">
+            <span class="metric-label">Dias até a Prova</span>
+            <div class="metric-value" id="metric-days-left">--</div>
+            <span class="metric-footer warning" id="metric-days-exam-name">Nenhum concurso ativo</span>
+          </div>
+
+          <!-- Total Syllabus Progress -->
+          <div class="card metric-card">
+            <span class="metric-label">Edital Concluído</span>
+            <div class="metric-value" id="metric-edital-progress">0%</div>
+            <span class="metric-footer success" id="metric-edital-ratio">0 de 0 tópicos</span>
+          </div>
+
+          <!-- Study Hours -->
+          <div class="card metric-card">
+            <span class="metric-label">Horas Líquidas</span>
+            <div class="metric-value" id="metric-hours-studied">0h</div>
+            <span class="metric-footer info">Total acumulado</span>
+          </div>
+
+          <!-- Questions metrics -->
+          <div class="card metric-card">
+            <span class="metric-label">Questões Resolvidas</span>
+            <div class="metric-value" id="metric-questions-count">0</div>
+            <span class="metric-footer success" id="metric-questions-accuracy">0% de acertos</span>
+          </div>
+        </div>
+        
+        <!-- Heatmap & Critical items -->
+        <div class="dashboard-details">
+          <div class="card heatmap-card">
+            <h3 class="day-focus-title" style="font-size: 1.15rem; margin-bottom: 8px;">🗺️ Mapa de Calor de Desempenho</h3>
+            <p class="page-subtitle" style="font-size: 0.8rem;">Visualização por disciplina. Passe o mouse para ver detalhes do assunto.</p>
+            <div class="heatmap-grid" id="dashboard-heatmap-grid">
+              <div style="color: var(--text-muted); font-size: 0.85rem; padding: 20px 0;">Cadastre um concurso e estude para gerar o mapa de calor.</div>
+            </div>
+          </div>
+          
+          <div class="card critical-card">
+            <h3 class="day-focus-title" style="font-size: 1.15rem; margin-bottom: 8px;">🚨 Pontos Críticos (Atenção Máxima)</h3>
+            <p class="page-subtitle" style="font-size: 0.8rem;">Assuntos fracos ou sem contato há mais tempo.</p>
+            <ul class="critical-list" id="dashboard-critical-list">
+              <li style="color: var(--text-muted); font-size: 0.85rem; padding: 20px 0;">Sem alertas críticos no momento. Continue assim!</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW: MEUS EDITAIS
+           ========================================== -->
+      <section id="view-editais" class="app-view" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+          <div class="page-header" style="margin-bottom: 0;">
+            <h1 class="page-title">Meus Editais</h1>
+            <p class="page-subtitle">Cadastre seus concursos e gerencie o conteúdo programático verticalizado.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-add-concurso">
+            <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
+            <span>Novo Concurso</span>
+          </button>
+        </div>
+
+        <!-- Concursos Switcher List -->
+        <div class="concursos-list" id="concursos-selector-list">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Verticalized Syllabus View -->
+        <div id="active-syllabus-area" style="display: none;">
+          <div class="card" style="margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <h2 class="day-focus-title" id="active-concurso-title" style="font-size: 1.35rem;">Nome do Concurso</h2>
+                <p class="page-subtitle" id="active-concurso-subtitle">Cargo | Banca</p>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button class="btn btn-secondary" id="btn-import-syllabus">
+                  <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                  <span>Importar Conteúdo</span>
+                </button>
+                <button class="btn btn-danger" id="btn-delete-concurso">
+                  <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                  <span>Remover</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Verticalized Checklist -->
+          <div class="syllabus-container" id="vertical-syllabus-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW: REVISÕES DE HOJE
+           ========================================== -->
+      <section id="view-revisoes" class="app-view" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">Revisões de Hoje</h1>
+          <p class="page-subtitle">Otimize a fixação de longo prazo realizando as revisões espaçadas programadas.</p>
+        </div>
+        
+        <div class="card" style="margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="day-focus-title" style="font-size: 1.15rem;">📌 Cronograma Ativo</h2>
+            <span class="badge badge-review" id="revisoes-count-badge">0 pendentes</span>
+          </div>
+        </div>
+
+        <div class="focus-list" id="revisoes-list-container">
+          <!-- Dynamically populated -->
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            <i data-lucide="check-circle-2" style="width: 48px; height: 48px; stroke: var(--success); margin: 0 auto 16px auto; opacity: 0.6;"></i>
+            <p>Parabéns! Todas as revisões para hoje estão concluídas.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW: ESTUDO ATIVO & IA MENTOR
+           ========================================== -->
+      <section id="view-estudo-ativo" class="app-view" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">Estudo Ativo & Mentor IA</h1>
+          <p class="page-subtitle">Gere resumos, responda a perguntas discursivas e pratique flashcards criados por IA.</p>
+        </div>
+        
+        <div class="study-view-container">
+          <!-- Left Tree Selector -->
+          <div class="card study-selector-card">
+            <h2 class="day-focus-title" style="font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="book-marked" style="color: var(--primary);"></i>
+              Selecionar Tópico
+            </h2>
+            <div id="study-topics-tree">
+              <!-- Dynamically populated with active concurso subjects -->
+              <div style="color: var(--text-muted); font-size: 0.85rem;">Cadastre um edital para começar a estudar ativamente os tópicos.</div>
+            </div>
+          </div>
+          
+          <!-- Right Workspace Area -->
+          <div class="study-workspace" id="study-workspace-area" style="display: none;">
+            <div class="card">
+              <span id="study-active-subject" style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">Direito Constitucional</span>
+              <h2 id="study-active-topic" class="day-focus-title" style="font-size: 1.25rem;">Direitos Fundamentais</h2>
+              <p id="study-active-subtopic" class="page-subtitle" style="font-size: 0.85rem;">Direitos Individuais e Coletivos</p>
+            </div>
+            
+            <!-- Workspace Tabs -->
+            <div class="study-tabs">
+              <button class="study-tab active" data-tab="resumo">Resumo de 1 Minuto</button>
+              <button class="study-tab" data-tab="flashcards">Flashcards</button>
+              <button class="study-tab" data-tab="questoes">Perguntas IA</button>
+              <button class="study-tab" data-tab="mentor">Falar com Mentor</button>
+            </div>
+            
+            <!-- Tab Content: Resumo -->
+            <div class="card study-tab-content" id="tab-content-resumo">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 class="day-focus-title" style="font-size: 1.1rem;">📝 Resumo Teórico Express</h3>
+                <button class="btn btn-secondary" id="btn-generate-summary" style="padding: 8px 16px; font-size: 0.8rem;">
+                  <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                  <span>Gerar/Atualizar</span>
+                </button>
+              </div>
+              <div class="summary-content" id="ai-summary-body">
+                <p style="color: var(--text-secondary); text-align: center; padding: 20px 0;">Clique em "Gerar" para criar um resumo inteligente de 1 minuto usando o Gemini.</p>
+              </div>
+            </div>
+            
+            <!-- Tab Content: Flashcards -->
+            <div class="card study-tab-content" id="tab-content-flashcards" style="display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 class="day-focus-title" style="font-size: 1.1rem;">🧠 Prática de Flashcards</h3>
+                <button class="btn btn-secondary" id="btn-generate-flashcards" style="padding: 8px 16px; font-size: 0.8rem;">
+                  <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                  <span>Gerar por IA</span>
+                </button>
+              </div>
+              
+              <div class="flashcards-container" id="flashcards-practice-area" style="display: none;">
+                <!-- Card Container -->
+                <div class="flashcard" id="active-flashcard">
+                  <div class="flashcard-inner">
+                    <div class="flashcard-front">
+                      <span class="flashcard-badge">Pergunta</span>
+                      <p class="flashcard-text" id="fc-question-text">Qual o prazo máximo para...</p>
+                      <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 20px; font-style: italic;">Clique para virar o card</span>
+                    </div>
+                    <div class="flashcard-back">
+                      <span class="flashcard-badge">Resposta</span>
+                      <p class="flashcard-text" id="fc-answer-text">O prazo máximo é...</p>
+                      <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 20px; font-style: italic;">Clique para desvirar</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Evaluation Buttons (spaced repetition ratings) -->
+                <div class="flashcard-eval-buttons" id="fc-eval-buttons" style="display: none;">
+                  <button class="btn-eval btn-eval-error" data-rating="1">Errei</button>
+                  <button class="btn-eval btn-eval-hard" data-rating="2.5">Difícil</button>
+                  <button class="btn-eval btn-eval-good" data-rating="4">Bom</button>
+                  <button class="btn-eval btn-eval-easy" data-rating="5">Fácil</button>
+                </div>
+                
+                <!-- Navigation -->
+                <div class="flashcard-nav">
+                  <span id="fc-index-counter" style="font-size: 0.85rem; color: var(--text-secondary);">Card 1 de 5</span>
+                </div>
+              </div>
+              
+              <div id="flashcards-empty-state" style="text-align: center; padding: 20px 0; color: var(--text-muted);">
+                <p>Nenhum flashcard ativo para este assunto. Gere novos acima.</p>
+              </div>
+            </div>
+            
+            <!-- Tab Content: Perguntas IA -->
+            <div class="card study-tab-content" id="tab-content-questoes" style="display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 class="day-focus-title" style="font-size: 1.1rem;">❓ Perguntas Discursivas & Estudo Ativo</h3>
+                <button class="btn btn-secondary" id="btn-generate-questions" style="padding: 8px 16px; font-size: 0.8rem;">
+                  <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                  <span>Gerar Perguntas</span>
+                </button>
+              </div>
+              <div class="ai-questions-list" id="ai-questions-container">
+                <!-- Dynamically populated -->
+                <p style="color: var(--text-secondary); text-align: center; padding: 20px 0;">Clique em "Gerar" para criar 3 perguntas discursivas inéditas via IA.</p>
+              </div>
+            </div>
+            
+            <!-- Tab Content: Mentor IA Chat -->
+            <div class="card study-tab-content" id="tab-content-mentor" style="display: none;">
+              <h3 class="day-focus-title" style="font-size: 1.1rem; margin-bottom: 16px;">💬 Converse com seu Mentor Virtual</h3>
+              <div class="ai-mentor-chat">
+                <div class="chat-history" id="mentor-chat-history">
+                  <div class="chat-bubble mentor">
+                    Olá! Sou seu Mentor Virtual. Tem alguma dúvida conceitual ou dificuldade sobre <strong><span class="active-subtopic-placeholder">este assunto</span></strong>? Pode me perguntar e explicarei de forma simples.
+                  </div>
+                </div>
+                <div class="chat-input-area">
+                  <input type="text" id="mentor-chat-input" class="chat-input" placeholder="Digite sua dúvida aqui...">
+                  <button id="btn-send-mentor" class="chat-send-btn">Enviar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div id="study-empty-workspace" class="card" style="display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--text-muted);">
+            <p>Selecione um tópico na lista à esquerda para começar a estudar ativamente.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW: CONFIGURAÇÕES
+           ========================================== -->
+      <section id="view-configuracoes" class="app-view" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">Configurações</h1>
+          <p class="page-subtitle">Configure sua API de Inteligência Artificial e sincronização com a nuvem.</p>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Gemini API Config -->
+          <div class="card">
+            <h2 class="day-focus-title" style="font-size: 1.2rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="key-round" style="color: var(--accent);"></i>
+              Chave de API do Google Gemini
+            </h2>
+            <div class="settings-group">
+              <div class="settings-field">
+                <label for="input-gemini-key" class="settings-label">Sua Gemini API Key</label>
+                <input type="password" id="input-gemini-key" class="drawer-input" placeholder="Digite sua chave AIzaSy...">
+                <p class="settings-help">Esta chave é armazenada com segurança localmente no seu navegador e serve para gerar resumos, flashcards e questões.</p>
+                <p class="settings-help">Para obter uma chave gratuita de desenvolvedor, acesse o <a href="https://aistudio.google.com/" target="_blank" style="text-decoration: underline; color: var(--primary);">Google AI Studio</a>.</p>
+              </div>
+              <button class="btn btn-primary" id="btn-save-gemini-key" style="align-self: flex-start;">Salvar Chave</button>
+            </div>
+          </div>
+
+          <!-- Firebase Config -->
+          <div class="card">
+            <h2 class="day-focus-title" style="font-size: 1.2rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="database" style="color: var(--secondary);"></i>
+              Sincronização na Nuvem (Firebase)
+            </h2>
+            <div class="settings-group">
+              <p class="page-subtitle" style="font-size: 0.85rem; margin-bottom: 8px;">Configure seu próprio projeto gratuito no Firebase para sincronizar dados automaticamente entre o celular e o computador.</p>
+              <div class="settings-field">
+                <label for="input-firebase-config" class="settings-label">SDK Firebase Configuration (JSON)</label>
+                <textarea id="input-firebase-config" class="drawer-textarea" rows="6" placeholder='{&#10;  "apiKey": "...",&#10;  "authDomain": "...",&#10;  "projectId": "...",&#10;  ...&#10;}'></textarea>
+                <p class="settings-help">Cole o objeto JavaScript/JSON de configuração fornecido no console do Firebase ao criar um Web App.</p>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button class="btn btn-primary" id="btn-save-firebase-config">Salvar Configurações</button>
+                <button class="btn btn-danger" id="btn-clear-firebase-config" style="display: none;">Redefinir Firebase</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Metas de estudo -->
+          <div class="card">
+            <h2 class="day-focus-title" style="font-size: 1.2rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="sliders" style="color: var(--primary);"></i>
+              Preferências de Estudo
+            </h2>
+            <div class="settings-group">
+              <div class="settings-field">
+                <label for="input-study-goal" class="settings-label">Meta Diária de Estudo (Minutos)</label>
+                <input type="number" id="input-study-goal" class="drawer-input" min="30" max="1440" value="240">
+              </div>
+              <button class="btn btn-primary" id="btn-save-study-preferences" style="align-self: flex-start;">Salvar Preferências</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODAL: ADICIONAR CONCURSO
+       ========================================== -->
+  <div class="modal-overlay" id="modal-concurso">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Cadastrar Novo Concurso</h3>
+        <button class="modal-close" id="modal-concurso-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="drawer-field">
+          <label for="input-conc-nome" class="drawer-label">Nome do Concurso</label>
+          <input type="text" id="input-conc-nome" class="drawer-input" placeholder="Ex: TRT 2ª Região, Receita Federal">
+        </div>
+        <div class="drawer-field">
+          <label for="input-conc-cargo" class="drawer-label">Cargo Pretendido</label>
+          <input type="text" id="input-conc-cargo" class="drawer-input" placeholder="Ex: Analista Judiciário, Auditor">
+        </div>
+        <div class="drawer-field">
+          <label for="input-conc-banca" class="drawer-label">Banca Examinadora</label>
+          <input type="text" id="input-conc-banca" class="drawer-input" placeholder="Ex: FCC, Cebraspe, FGV">
+        </div>
+        <div class="drawer-field">
+          <label for="input-conc-data" class="drawer-label">Data da Prova</label>
+          <input type="date" id="input-conc-data" class="drawer-input">
+        </div>
+        <button class="btn btn-primary" id="btn-submit-concurso" style="margin-top: 10px;">Criar Concurso</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: IMPORTAR EDITAL (TEXTO / PDF)
+       ========================================== -->
+  <div class="modal-overlay" id="modal-import">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Importar Conteúdo Programático</h3>
+        <button class="modal-close" id="modal-import-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="page-subtitle" style="font-size: 0.85rem;">Escolha um arquivo PDF contendo o edital ou cole o conteúdo programático em formato de texto para estruturá-lo com Inteligência Artificial.</p>
+        
+        <div class="import-section">
+          <!-- Dropzone para PDF -->
+          <div class="file-dropzone" id="pdf-dropzone">
+            <i data-lucide="file-text" class="file-dropzone-icon"></i>
+            <p style="font-weight: 600;">Arraste seu PDF ou clique para selecionar</p>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">PDF analisado localmente no navegador</p>
+            <input type="file" id="input-pdf-file" accept="application/pdf" style="display: none;">
+          </div>
+          
+          <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin: 4px 0;">OU COLE O TEXTO ABAIXO</div>
+          
+          <!-- Textarea para colar -->
+          <div class="drawer-field">
+            <label for="textarea-raw-syllabus" class="drawer-label">Conteúdo Programático Bruto</label>
+            <textarea id="textarea-raw-syllabus" class="drawer-textarea" rows="8" placeholder="Cole aqui o texto do edital. Ex:&#10;DIREITO CONSTITUCIONAL: 1. Princípios fundamentais. 2. Direitos e garantias fundamentais..."></textarea>
+          </div>
+          
+          <!-- Import Progress -->
+          <div id="import-progress-area" style="display: none; padding: 12px; background-color: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
+              <span id="import-progress-status">Extraindo texto...</span>
+              <span id="import-progress-percent">0%</span>
+            </div>
+            <div class="prep-progress-bar" style="margin: 0; height: 8px;">
+              <div class="prep-progress-fill" id="import-progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          
+          <button class="btn btn-primary" id="btn-process-syllabus">
+            <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+            <span>Processar com IA Gemini</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript Module -->
+  <script type="module" src="js/app.js"></script>
+  
+  <script>
+    // Initialize Lucide icons on boot
+    lucide.createIcons();
+    
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('Service Worker registrado com sucesso:', reg.scope))
+          .catch((err) => console.error('Erro ao registrar Service Worker:', err));
+      });
+    }
+  </script>
+</body>
+</html>
